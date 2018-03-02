@@ -1,0 +1,139 @@
+\documentclass[a4paper]{report}
+\usepackage{a4wide}
+\usepackage{verbatim}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\author{Heidi Burger\BRGHEI006}
+\title{Isogeometric Analysis}
+\begin{document}
+	\newpage
+	\begin{figure}[h]
+	\centering
+	\includegraphics[scale=0.7]{uct_logo}
+	\end{figure}
+	\begin{center}
+		\textbf{
+			\begin{large}
+				Masters Dissertation\\
+				.....\\
+				Isogeometric Analysis\\
+				.....\\
+				BRGHEI006\\
+				.....\\
+				Heidi Burger\\
+				.....\\
+				\today
+		\end{large}}
+	\end{center}
+
+
+\newpage \normalsize
+\chapter{2D scalar Manual}
+
+\section{Weak Form}
+	A two dimensional heat problem with the governing equation (strong form):
+	
+	\begin{equation}
+		\underline{\nabla}^T \underbar{q} - S = 0 \quad \text{on $\Omega$} 
+		\label{governing2Dscalar}
+	\end{equation}
+	where $q=$ is the temperature and $S$ is the source term defined as:
+		
+	\begin{eqnarray}
+		\underline{q}=-\underline{k}\underline{\nabla}T \\
+		S = 0
+	\end{eqnarray}
+	where $T$ is the temperature of the domain and $S$ is the source term and the boundary conditions are defined as:
+	
+	\begin{eqnarray}
+		\underline{q}=\bar{\underline{q}}  \quad \text{on $\Gamma_N$} \\
+		T=\bar{T}  \quad \text{on $\Gamma_N$}
+	\end{eqnarray}
+	
+	\noindent can be solved by using Isogeometric Analysis (IGA). The above governing equation can be converted to the weak form in order to solve the equation with NURBS. \\
+	
+	\noindent To convert the strong form to the weak form, the governing equation is multiplied by a test function ($w$) and integrated across the domain ($\Omega$) as seen in equations below. 
+	
+	\begin{eqnarray}
+		\int_{\Omega} (w \nabla^T) \underline{q}  d\Omega - \int_{\Omega} wS d\Omega  =0\\
+		\int_{\Omega} (\nabla^T w) \underline{q}  d\Omega - \oint_{\Gamma_N} w\underline{q}^T \underline{n} d\Gamma + \int_{\Omega} wS d\Omega =0 \\
+		\int_{\Omega} (\nabla^T w) \underline{D\nabla T}  d\Omega = - \oint_{\Gamma_N} w\underline{q}^T \underline{n} d\Gamma + \int_{\Omega} wS d\Omega  
+		\label{2DscalarWF}
+	\end{eqnarray}
+	
+	\noindent Find $T \in H'$ so that $T=\bar{T}$ on $\Gamma_D$ that satisfies equation \ref{2DscalarWF} where the test functions $w\in H'$ and $w=0$ on $\Gamma_D$.
+
+\section{Bubnov-Garlerkin form}
+	
+	Using the Bubnov-Garlerkin method \textbf{(insert reference)}, where the same shape functions ($\Phi_I$) are used for both the field variable (temperature in this case) and the test function (w). The Bubnov-Garlerkin equation form can be seen in equation \ref{2DscalarBGF} below:
+	
+	\begin{equation}
+		\underbrace{\int_{\Omega} \frac{d\underline{R}}{d\underline{x}}^T \underline{D} \frac{d\underline{R}}{d\underline{x}} d\Omega}_{\underline{K}} \underbrace{\underline{d}}_{\underline{d}} = \underbrace{\int_{\Omega} \underline{R}^T s d\Omega - \oint_{\Gamma_N} \underline{N}^T \bar{\underline{q}} d\Gamma }_{\underline{F}}
+		\label{2DscalarBGF}
+	\end{equation}
+	
+	\noindent where $w$ represents the nodal displacement variations, $\underline{R}$ is a vector of the products of the basis functions associated with each node on the control polygon element and $\underline{N}$ is a vector of basis functions associated with each node along the one side of the element. \textbf{(Check nomenclature with Ernesto. And define elements.)}
+
+
+\section{Calculating the components of the Bubnov-Garlerkin form}
+
+	In each parametric direction ($\xi$ and $\eta$), basis functions can be described for each element, depending on the basis function order ($p$ and $q$), knot vector ($\Xi$ and $H$) and NURBS weights ($w$).
+	
+	\noindent The following equations describe B-spline basis functions, depending on the order required and knot vector length. 
+	\begin{equation}
+		N^{Bspline}_{i,p}(\xi)=\frac{\xi - \xi_i}{\xi_{i+p}-\xi_i}N_{i,p-1}(\xi)+\frac{\xi_{i+p+1} - \xi}{\xi_{i+p+1}-\xi_{i+1}}N_{i+1,p-1}(\xi)
+	\end{equation}
+	
+	where when p=0:
+	\begin{equation}
+		N_{i,p}(\xi)=\begin{cases}
+		1, & \text{if $\xi_i \geq \xi > \xi_{i+1}$ } \\
+		0, & \text{otherwise}.
+		\end{cases}
+	\end{equation}
+	
+	\noindent The NURBS basis function can be made of the B-splines ($N^{Bslpline}$) as can be seen in equation \ref{NURBSbasisFunction} below:
+	
+	\begin{equation}
+		N^{NURBS}_{i,p}(\xi)=\frac{N^{Bspline}_{i,p}(\xi)w_i}{\sum_{j=1}^{n}N^{Bspline}_{j,p}(\xi)w_j}
+		\label{NURBSbasisFunction}
+	\end{equation}
+	
+	\noindent $\underline{R}$ is a vector of the products of basis functions. Each entry is a product of the basis functions associated with each direction. $N_i$ refers to $N^{NURBS}_{i,p}(\xi)$ in the $\xi$ direction and $M_j$ refers to $N^{NURBS}_{j,q}(\eta)$ in the $\eta$ direction. $i$ and $j$ refer to the basis function numbers associated with a certain element.
+	
+	\begin{equation}
+		\underline{R}=[N_1M_1,N_2M_1,N_3M_1,N_1M_2,N_2M_2,N_3M_2,N_1M_3,N_2M_3,N_3M_3]
+	\end{equation}
+	
+	\noindent To calculate the derivatives of $\underline{R}$ with respect to the physical domain ($x$ and $y$), the derivatives with respect to the parametric domain is to be calculated first. This can be done by take the derivatives of each component in $\underline{R}$ as illustrated below:
+	
+	\begin{eqnarray}
+		\frac{dR}{d\xi} =\Bigg[\frac{dN_1}{d\xi}M_1, \frac{dN_2}{d\xi}M_1, \frac{dN_3}{d\xi}M_1, \frac{dN_1}{d\xi}M_2, \frac{dN_2}{d\xi}M_2, \frac{dN_3}{d\xi}M_2, \frac{dN_1}{d\xi}M_3, \frac{dN_2}{d\xi}M_3, \frac{dN_3}{d\xi}M_3 \Bigg] \\
+		\frac{dR}{d\eta} =\Bigg[\frac{dM_1}{d\eta}N_1, \frac{dM_2}{d\eta}N_1, \frac{dM_3}{d\eta}N_1, \frac{dM_1}{d\eta}N_2, \frac{dM_2}{d\eta}N_2, \frac{dM_3}{d\eta}N_2, \frac{dM_1}{d\eta}N_3, \frac{dM_2}{d\eta}N_3, \frac{dM_3}{d\eta}N_3 \Bigg]
+	\end{eqnarray}
+	
+	\noindent To convert the parametric derivative ($\frac{d\underline{R}}{d\underline{\xi}}$) to the physical derivative ($\frac{d\underline{R}}{d\underline{x}}$), the parametric Jacobian is required which can be calculated using the parametric derivatives and the control points associated with the element as shown in equation \ref{paraJaco}.
+	
+	\begin{equation}
+		\begin{bmatrix}
+		\frac{dR}{d\xi} \underline{x} & \frac{dR}{d\eta} \underline{x} \\
+		\frac{dR}{d\xi} \underline{y} & \frac{dR}{d\eta} \underline{y} \\
+		\end{bmatrix}
+		\label{paraJaco}
+	\end{equation}
+
+
+
+
+
+
+
+
+
+
+
+\end{document}
