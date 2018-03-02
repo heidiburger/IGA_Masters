@@ -2,7 +2,7 @@
 %Ernesto 2017
 clear all
 % close all
-%nkosi eest dumb
+
 figure(4)
 for p = 1:4
     %p = 0;
