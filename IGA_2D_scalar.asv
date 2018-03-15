@@ -1,0 +1,122 @@
+%%IGA_2D_scalar
+%%Heidi Burger
+clear all
+%% Setup
+    k=5;            %Wcm^-1C^-1
+    el_num=2;       %Number of elements per side.
+    tot_el_num=el_num^2;   %Total number of elements in mesh (forces mesh to be square).
+    xs=0;           %x start value
+    xe=1;           %x end value
+    ys=0;           %y start value
+    ye=1;           %y end value
+    
+%Knot Vectors
+    p=2;                            %Polynomial order (Xi)
+    q=2;                            %Polynomial order (Eta)
+    xs_vec=ones(1,p)*xs;
+    ys_vec=ones(1,q)*ys;
+    xe_vec=ones(1,p)*xe;
+    ye_vec=ones(1,q)*ye;
+    Xi=[xs_vec linspace(xs,xe,el_num+1) xe_vec];         %Knot Vector
+    Eta=[ys_vec linspace(ys,ye,el_num+1) ye_vec];         %Knot Vector
+    
+%Control Polygon
+    n=length(Xi)-p-1;               %Number of basis functions for 2D (Xi)
+    m=length(Eta)-q-1;              %Number of basis functions for 2D (Eta)
+    nn=n*m;                         %Number of nodes
+%Control Points and Weights for plate with 1/4 hole on edge
+    B=[-1 0, -2.5 0, -4 0
+       -1 sqrt(2)-1, -2.5 0.75, -4 4
+       1-sqrt(2) 1, -0.75 2.5, -4 4
+       0 1, 0 2.5, 0 4];
+    const_w=[ 1 1 1
+              (1+1/sqrt(2))/2 1 1
+              (1+1/sqrt(2))/2 1 1
+              1 1 1];
+    
+    ppoints=7+6*20;                 %Number of points used to plot spline
+                                    %To get points at control points:
+                                    %pppoints=7+6*h
+                            
+%To get points at control points: 
+    a=min(Xi);                      %Lower bound of Xi-vector
+    b=max(Xi);                      %Upper bound of Xi-vector
+    aa=min(Eta);                    %Lower bound of Eta-vector
+    bb=max(Eta);                    %Upper bound of Eta-vector
+    xi_vec = linspace(a,b,ppoints);     %Parametric vector of spline, xi
+    eta_vec = linspace(aa,bb,ppoints);  %Parametric vector of spline, eta
+    c_vec=zeros(ppoints,2);             %Initialise vector for spline
+    
+%Boundary Conditions    
+    d_E=[0 0 0];            %Temperature values for bottom three control points. 
+    
+%% Main to get field variables polygon
+
+    %Xi_bar = [0.90618 0.538469 0 -0.538469 -0.90618];    %Gauss integration points/Parent Domain for 5 point Gauss
+    %w = [0.236927 0.478629 0.568889 0.478629 0.236927];  %Gauss integration weights for 5 point Gauss
+    
+    w = [(322-13*sqrt(70))/900,(322+13*sqrt(70))/900,128/225,(322+13*sqrt(70))/900,(322-13*sqrt(70))/900];
+    Xi_bar = [-1/3*sqrt(5+2*sqrt(10/7)),-1/3*sqrt(5-2*sqrt(10/7)),0,1/3*sqrt(5-2*sqrt(10/7)),1/3*sqrt(5+2*sqrt(10/7))];
+    Eta_bar = [-1/3*sqrt(5+2*sqrt(10/7)),-1/3*sqrt(5-2*sqrt(10/7)),0,1/3*sqrt(5-2*sqrt(10/7)),1/3*sqrt(5+2*sqrt(10/7))];
+%     Xi_bar = [sqrt(0.6) 0 -sqrt(0.6)];    %Gauss integration points/Parent Domain for 3 point Gauss
+%     w = [5/9 8/9 5/9];                    %Gauss integration weights for 3 point Gauss
+    K=zeros(nn);                %Initialise K
+    F=zeros(nn,1);              %Initialise F    
+    
+%%
+    NODE=zeros(tot_el_num,(p+1)*(q+1));                            %ICA for nodes
+    c=0;
+    three=0;
+    for i=1:tot_el_num
+        three=three+1;
+        c=c+1;
+        NODE(i,:)=[c, c+1, c+2, c+2+n, c+2+2*n, c+1+2*n, c+2*n, c+n, c+n+1];
+        if rem(three,el_num)==0
+            c=c+2;
+            three=0;
+        end
+        
+    end
+%%
+    R=zeros(tot_el_num,9);
+    for el=1:tot_el_num
+        if p==2
+        	asm = NODE(el,:);           %Matrix to assemble into K. Called sctr in Nguyen paper. Will change for different order elements
+%         elseif p==3
+%             asm = [el el+1 el+2 el+3];
+%         elseif p==4
+%             asm = [el el+1 el+2 el+3 el+4];
+        end
+        
+        K_e=0;
+        F_e=0;
+        i=el+p;                         %Equivalence of i in Nguyen paper.
+        j=el+q;                         %Equivalence of i in Nguyen paper.
+        
+        for gp=1:length(Xi_bar)
+            for gp2=1:length(Xi_bar)
+                
+                xi = 0.5*[(Xi(i+1)-Xi(i))*Xi_bar(gp) + Xi(i+1) + Xi(i)];         %Parametric domain
+                eta = 0.5*[(Eta(j+1)-Eta(j))*Eta_bar(gp2) + Eta(j+1) + Eta(j)];         %Parametric domain
+                
+            end
+        end
+
+        K(asm,asm) = K(asm,asm) + K_e;
+        F(asm)     = F(asm) + F_e;
+        
+        for place=NODE(el,:)
+            
+            R(el,:)=[N1*M1];
+        end
+                
+        
+	end
+
+    
+            
+            
+            
+            
+            
+    
