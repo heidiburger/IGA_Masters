@@ -53,7 +53,7 @@ clear all
       3 0, 3 1, 3 2, 3 3
       4 0, 4 1, 4 2, 4 3];                              %Control points
    Bvec=[B(:,1:2); B(:,3:4); B(:,5:6); B(:,7:8)];       %Make so that it manually converts B to a vector of pairs. 
-   const_w=ones(n,m);                                   %Weights associated with control points
+   w=ones(n,m);                                   %Weights associated with control points
     
    ppoints=50;                 %Number of points used to plot NURBS per side of mesh. Change in future to ppoints on x and y side to be different
                             
@@ -64,7 +64,7 @@ clear all
     bb=max(Eta);                    %Upper bound of Eta-vector
     xi_vec = linspace(a,b,ppoints);     %Parametric vector of spline, xi
     eta_vec = linspace(aa,bb,ppoints);  %Parametric vector of spline, eta
-    temp_vec=zeros(ppoints,1);             %Initialise vector for spline
+    
     
 %% Boundary Conditions    
     n_E=[1 2 3 4 5 16 17 18 19 20];            %Numbers of the nodes which are dirichlet nodes.
@@ -82,7 +82,7 @@ clear all
 %% Gauss Quad and Matrix Initialisation
 
 %For 5 pt Gauss Quadrature
-    w = [(322-13*sqrt(70))/900,(322+13*sqrt(70))/900,128/225,(322+13*sqrt(70))/900,(322-13*sqrt(70))/900];
+    w_gp = [(322-13*sqrt(70))/900,(322+13*sqrt(70))/900,128/225,(322+13*sqrt(70))/900,(322-13*sqrt(70))/900];
     Xi_bar = [-1/3*sqrt(5+2*sqrt(10/7)),-1/3*sqrt(5-2*sqrt(10/7)),0,1/3*sqrt(5-2*sqrt(10/7)),1/3*sqrt(5+2*sqrt(10/7))];
     Eta_bar = [-1/3*sqrt(5+2*sqrt(10/7)),-1/3*sqrt(5-2*sqrt(10/7)),0,1/3*sqrt(5-2*sqrt(10/7)),1/3*sqrt(5+2*sqrt(10/7))];
 %     Xi_bar = [sqrt(0.6) 0 -sqrt(0.6)];    %Gauss integration points/Parent Domain for 3 point Gauss
@@ -129,63 +129,49 @@ clear all
             x=Bvec(asm,1);      %Location of elemental control points in the physical space
             y=Bvec(asm,2);
             
-            bfN=linspace(elN,elN+p+1,p+2);      %Basis functions required for this element in N direction. %[elN,elN+1,elN+2];
-            bfM=linspace(elM,elM+q+1,q+2);      %Basis functions required for this element in M direction. %[elN,elN+1,elN+2];
+%             bfN=linspace(elN,elN+p+1,p+2);      %Basis functions required for this element in N direction. %[elN,elN+1,elN+2];
+%             bfM=linspace(elM,elM+q+1,q+2);      %Basis functions required for this element in M direction. %[elN,elN+1,elN+2];
             
             for gp1=1:length(Xi_bar)
                 for gp2=1:length(Eta_bar)
 
                     xi = 0.5*[(Xi(i+1)-Xi(i))*Xi_bar(gp1) + Xi(i+1) + Xi(i)];         %Parametric values of gauss point
                     eta = 0.5*[(Eta(j+1)-Eta(j))*Eta_bar(gp2) + Eta(j+1) + Eta(j)];
-
+                    
                 %Individual basis function components in each direction
-                    N1=basis_funct(p,Xi,elN,xi);        %Change number of basis functions based on p and q in future. 
-                    M1=basis_funct(q,Eta,elM,eta);
-                    N2=basis_funct(p,Xi,elN+1,xi);
-                    M2=basis_funct(q,Eta,elM+1,eta);
-                    N3=basis_funct(p,Xi,elN+2,xi);
-                    M3=basis_funct(q,Eta,elM+2,eta);
+                    N1=basis_functR(p,Xi,elN,n,xi,w);       %Change number of basis functions based on p and q in future. 
+                    M1=basis_functR(q,Eta,elM,m,eta,w);
+                    N2=basis_functR(p,Xi,elN+1,n,xi,w);
+                    M2=basis_functR(q,Eta,elM+1,m,eta,w);
+                    N3=basis_functR(p,Xi,elN+2,n,xi,w);
+                    M3=basis_functR(q,Eta,elM+2,m,eta,w);
                     R=[N1*M1 N2*M1 N3*M1 N1*M2 N2*M2 N3*M2 N1*M3 N2*M3 N3*M3]; %Capital phi matrix
                 %Individual derivative basis function components in each direction    
-                    dN1_dXi=basis_funct_deriv(p,Xi,elN,xi);
-                    dM1_dEta=basis_funct_deriv(q,Eta,elM,eta);
-                    dN2_dXi=basis_funct_deriv(p,Xi,elN+1,xi);
-                    dM2_dEta=basis_funct_deriv(q,Eta,elM+1,eta);
-                    dN3_dXi=basis_funct_deriv(p,Xi,elN+2,xi);
-                    dM3_dEta=basis_funct_deriv(q,Eta,elM+2,eta);
+                    dN1_dXi=basis_funct_derivR(p,Xi,elN,n,xi,w);%basis_funct_deriv(p,Xi,elN,xi);%
+                    dM1_dEta=basis_funct_derivR(q,Eta,elM,m,eta,w);
+                    dN2_dXi=basis_funct_derivR(p,Xi,elN+1,n,xi,w);
+                    dM2_dEta=basis_funct_derivR(q,Eta,elM+1,m,eta,w);
+                    dN3_dXi=basis_funct_derivR(p,Xi,elN+2,n,xi,w);
+                    dM3_dEta=basis_funct_derivR(q,Eta,elM+2,m,eta,w);
                 %Derivative wrt Xi-Eta domain    
                     dR_dXi =[dN1_dXi*M1 dN2_dXi*M1 dN3_dXi*M1 dN1_dXi*M2 dN2_dXi*M2 dN3_dXi*M2 dN1_dXi*M3 dN2_dXi*M3 dN3_dXi*M3];       %Propogate automatically in a loop. 
                     dR_dEta=[N1*dM1_dEta N2*dM1_dEta N3*dM1_dEta N1*dM2_dEta N2*dM2_dEta N3*dM2_dEta N1*dM3_dEta N2*dM3_dEta N3*dM3_dEta];
                 %Parametric jacobian    
-                    JXi=[dR_dXi*x, dR_dEta*x
+                    JXi=[dR_dXi*x, dR_dEta*x;
                          dR_dXi*y, dR_dEta*y];      %Jacobian to move between the physical and parametric domain. 
 
-                     %Isoparametric jacobian     
+                %Isoparametric jacobian     
                     JXi_bar=0.25*(Xi(i+1)-Xi(i))*(Eta(j+1)-Eta(j)); %Jacobian to move between the parametric and parent (gp) domain.
                 %Derivative wrt x-y domain    
-                    [dR_dxy]=[dR_dXi' dR_dEta'];%/JXi;       %Same as GN' in traditional FEM
-                    dR_dx=dR_dxy(:,1);        % To separate out the x and y sides
-                    dR_dy=dR_dxy(:,2);
-                    dR_dxy=dR_dxy';
+%                     [dR_dxy]=[dR_dXi' dR_dEta']/JXi;       %Same as GN' in traditional FEM
+%                     dR_dx=dR_dxy(:,1);        % To separate out the x and y sides
+%                     dR_dy=dR_dxy(:,2);
+                    
+                    dR_dxy=JXi\[dR_dXi;dR_dEta];
+%                     dR_dxy=dR_dxy';
                     
                 %NURBS code to determine value of Gauss point in physical domain    
-                    c=0;
-                    W=0;
-                        %Only evaluate for where the basis functions are non-zero. 
-                        for ii = 1:n         %Loop through basis functions
-                            for jj = 1:m
-                                W = W + ( basis_funct(p,Xi,ii,xi) )*( basis_funct(q,Eta,jj,eta) )*const_w(ii,jj) ;
-                            end
-                        end
-
-                        for ii = 1:n         %Loop through basis functions
-                            for jj =1:m
-                                c = c + ( basis_funct(p,Xi,ii,xi) )*( basis_funct(q,Eta,jj,eta) )*const_w(ii,jj)*B(ii,[2*jj-1 2*jj]);
-                            end
-                        end
-                    [xy_source] = c/W;    %NURBS vector
-                    x_source=xy_source(1);
-                    y_source=xy_source(2);
+                    [x_source, y_source] = basis_functR2vec(p,q,Xi,Eta,n,m,xi,eta,w,Bvec);
                 %Equation for source term    
                     b=0;%*x_source;%(
 %                     b=0.5*(x_source)^2*(y_source)^2;  %Use x-source and
@@ -196,9 +182,9 @@ clear all
 %                           zeros(1,9),dR_dy'
 %                           dR_dy',dR_dx'];                   %Size:   3x18    Only for 2D vector
 
-                    K_e = K_e + det(JXi)*det(JXi_bar)*w(gp1)*w(gp2)*(dR_dxy'*dR_dxy);        %Does it need two gp weights? 
+                    K_e = K_e + det(JXi)*det(JXi_bar)*w_gp(gp1)*w_gp(gp2)*(dR_dxy'*dR_dxy);        %Does it need two gp weights? 
 
-                    F_e = F_e + det(JXi)*det(JXi_bar)*w(gp1)*w(gp2)*b*R';
+                    F_e = F_e + det(JXi)*det(JXi_bar)*w_gp(gp1)*w_gp(gp2)*b*R';
                   
                     K(asm,asm) = K(asm,asm) + K_e;
                     F(asm)     = F(asm) + F_e;
@@ -216,35 +202,19 @@ clear all
                     N = zeros(1,sz);             %Basis Functions Matrix
                     for nr=1:sz
                         I = nr+elM-1;
-                        N_dEta(nr) = basis_funct_deriv(q,Eta,I,eta);
-                        N(nr) = basis_funct(q,Eta,I,eta);
+                        N_dEta(nr) = basis_funct_derivR(q,Eta,I,m,eta,w);%basis_funct_deriv(q,Eta,I,eta);
+                        N(nr) = basis_functR(q,Eta,I,m,eta,w);%basis_funct(q,Eta,I,eta);
                     end
 
                     JEta = (N_dEta*yy);                 %Parametric jacobian
                     JEta_bar = 0.5*(Eta(i+1)-Eta(i));   %Isoparametric jacobian
                     N_dx = JEta\N_dEta';                %Basis functions wrt x
                 %NURBS code to determine value of Gauss point in physical domain  
-                    c=0;
-                    W=0;
-                        %Only evaluate for where the basis functions are non-zero. 
-                        for ii = 1:n         %Loop through basis functions
-                            for jj = 1:m
-                                W = W + ( basis_funct(p,Xi,ii,xi) )*( basis_funct(q,Eta,jj,eta) )*const_w(ii,jj) ;
-                            end
-                        end
-
-                        for ii = 1:n         %Loop through basis functions
-                            for jj =1:m
-                                c = c + ( basis_funct(p,Xi,ii,xi) )*( basis_funct(q,Eta,jj,eta) )*const_w(ii,jj)*B(ii,[2*jj-1 2*jj]);
-                            end
-                        end
-                    [xy_source] = c/W;    %NURBS vector
-                    x_source=xy_source(1);
-                    y_source=xy_source(2);
+                    [x_source, y_source] = basis_functR2vec(p,q,Xi,Eta,n,m,xi,eta,w,Bvec);
                 %Flux equation
                     flux=0;   %-10*y_source;        %Include x_source and y_source calculations for more complicated flux term
 
-                    F_eN = F_eN + JEta*JEta_bar*w(gp)*flux*N';      %Neaumann contribution to Force matrix
+                    F_eN = F_eN + JEta*JEta_bar*w_gp(gp)*flux*N';      %Neaumann contribution to Force matrix
 
                     F(asm(n_flux))=F(asm(n_flux))+F_eN;
 
@@ -263,62 +233,18 @@ clear all
     d_F=K_F\(F_F-K_EF'*d_E);        %Solve for unknown d nodes
     d(n_E)=d_E;
     d(n_F)=d_F;            %Control polygon for field variables  
-    dvec=[d(1:el_numN+2)];
-    for i = 1:el_numM+1
-        dvec=[dvec d( (i*(el_numN+2)+1) : (i+1)*(el_numN+2)) ];        %Convert d into a matrix of values. 
+%     dmat=[d(1:el_numN+2)];
+%     for i = 1:m-1
+%         dmat=[dmat d( (i*(el_numN+2)+1) : (i+1)*(el_numN+2)) ];        %Convert d into a matrix of values. 
+%     end
+    dmat=d(1:n);
+    for i = 1:m-1
+        dmat=[dmat d( (i*n+1):(i+1)*n ) ];        %Convert d into a matrix of values. 
     end
 %% Create temperature NURBS
-    count=0;
-    for ii_points = 1:ppoints
-        for jj_points = 1:ppoints          %Full points to plot NURBS loop
-            c=0;
-            W=0;
-            %Only evaluate for where the basis functions are non-zero. 
-            for ii = 1:n         %Loop through basis functions
-                for jj = 1:m
-                    W = W + ( basis_funct(p,Xi,ii,xi_vec(ii_points)) )*( basis_funct(q,Eta,jj,eta_vec(jj_points)) )*const_w(ii,jj) ;
-                end
-            end
-
-            for ii = 1:n         %Loop through basis functions
-                for jj =1:m
-                    c = c + ( basis_funct(p,Xi,ii,xi_vec(ii_points)) )*( basis_funct(q,Eta,jj,eta_vec(jj_points)) )*const_w(ii,jj)*dvec(ii,jj);       %Multiply j by 2 if a matrix of pairs, not single values. 
-                end
-            end
-            count=count+1;
-            temp_vec(count) = c/W;    %NURBS vector
-        end
-    end
-    
+    [temp_vec] = basis_functR2sca(p,q,Xi,Eta,n,m,xi_vec,eta_vec,w,d);
 %% Create spatial NURBS
-    count=0;
-    x_vec=zeros(ppoints,1);
-    y_vec=zeros(ppoints,1);
-    c_vec=zeros(ppoints,2);
-    for ii_points = 1:ppoints
-        for jj_points = 1:ppoints          %Full points to plot NURBS loop
-            c=0;
-            W=0;
-            %Only evaluate for where the basis functions are non-zero. 
-            for ii = 1:n         %Loop through basis functions
-                for jj = 1:m
-                    W = W + ( basis_funct(p,Xi,ii,xi_vec(ii_points)) )*( basis_funct(q,Eta,jj,eta_vec(jj_points)) )*const_w(ii,jj) ;
-                end
-            end
-
-            for ii = 1:n         %Loop through basis functions
-                for jj =1:m
-                    c = c + ( basis_funct(p,Xi,ii,xi_vec(ii_points)) )*( basis_funct(q,Eta,jj,eta_vec(jj_points)) )*const_w(ii,jj)*B(ii,[2*jj-1 2*jj]);
-                end
-            end
-            count=count+1;
-            c_vec(count,:) = c/W;    %NURBS vector
-            
-            y_vec(jj_points)= c_vec(count,2);
-        end
-        x_vec(ii_points)=c_vec(count,1);
-    end
-    
+    [x_vec, y_vec] = basis_functR2vec(p,q,Xi,Eta,n,m,xi_vec,eta_vec,w,Bvec);
 %% Plot Graphs
 
 %     figure(1)
@@ -332,7 +258,7 @@ clear all
 %     title('2D temperature plot with fixed boundary') 
 %     axis equal       
 
-    temp_mat=reshape(temp_vec,ppoints,ppoints);
+temp_mat=reshape(temp_vec,ppoints,ppoints);
     
 figure(1)
     contour(x_vec,y_vec,temp_mat',ppoints)
@@ -344,7 +270,7 @@ figure(2)
     mesh(x_vec,y_vec,temp_mat')     %meshc(temp_mat')
     temp_actual=zeros(ppoints,ppoints);
     for i=1:ppoints
-        temp_actual(:,i)=linspace(0,10,ppoints)';
+        temp_actual(i,:)=10/3*y_vec;
     end
     hold on
     mesh(x_vec,y_vec,temp_actual')
